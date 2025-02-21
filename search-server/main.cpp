@@ -66,10 +66,10 @@ public:
 
         ++document_count_;
 
-        double tf = 1./static_cast<double>(document_words.size());
+        double tf_component = 1./static_cast<double>(document_words.size());
 
         for (const string& word : document_words) {
-            word_to_documents_tf_[word][document_id] += tf;
+            word_to_documents_tf_[word][document_id] += tf_component;
         }
     }
 
