@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <numeric>
 #include <map>
 #include <set>
 #include <string>
@@ -101,9 +102,8 @@ public:
              [](const Document& lhs, const Document& rhs) {
                  if (abs(lhs.relevance - rhs.relevance) < EPSILON) {
                      return lhs.rating > rhs.rating;
-                 } else {
-                     return lhs.relevance > rhs.relevance;
                  }
+				 return lhs.relevance > rhs.relevance;
              });
 
         if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
@@ -206,15 +206,9 @@ private:
         if (ratings.size() == 0){
             return 0;
         }
-
-        int sum = 0;
-
-        for (const auto& rating : ratings){
-            sum += rating;
-        }
-
-        return sum / static_cast<int>(ratings.size());
-    }
+		
+        return accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size());
+	}
     
     // Для каждого найденного документа возвращает его релевантность и id (пару)
     template <typename Filter>
@@ -229,7 +223,8 @@ private:
                 const double idf = CalculateIdf(query_word);
 
                 for (const auto& [id, tf] : word_to_documents_TF_.at(query_word)){
-                    if (filter(id, documents_.at(id).status, documents_.at(id).rating)){
+                    auto document_data = documents_.at(id);
+                    if (filter(id, document_data.status, document_data.rating)){
                         documents_id_relevence[id] += idf * tf;
                     }
                 }
