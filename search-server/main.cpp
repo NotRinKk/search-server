@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <numeric>
 #include <optional>
 #include <set>
 #include <string>
@@ -11,6 +12,7 @@
 using namespace std;
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
+const double EPSILON = 1e-6;
 
 string ReadLine() {
     string s;
@@ -135,11 +137,10 @@ void AddDocument(int document_id, const string& document, DocumentStatus status,
 
         sort(result.begin(), result.end(),
              [](const Document& lhs, const Document& rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
+                 if (abs(lhs.relevance - rhs.relevance) < EPSILON) {
                      return lhs.rating > rhs.rating;
-                 } else {
-                     return lhs.relevance > rhs.relevance;
                  }
+				 return lhs.relevance > rhs.relevance;
              });
         if (result.size() > MAX_RESULT_DOCUMENT_COUNT) {
             result.resize(MAX_RESULT_DOCUMENT_COUNT);
@@ -168,10 +169,6 @@ void AddDocument(int document_id, const string& document, DocumentStatus status,
 
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
         const Query query = ParseQuery(raw_query);
-
-        if (!query.is_right) {
-            throw invalid_argument("Query contains invalid characters or the wrong format of minus-words is used"s);
-        }
 
         vector<string> matched_words;
         for (const string& word : query.plus_words) {
@@ -231,11 +228,7 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
-        return rating_sum / static_cast<int>(ratings.size());
+		return accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size());
     }
 
     struct QueryWord {
@@ -255,25 +248,23 @@ private:
                 text = text.substr(1);
             }
             else {
-                is_wrong_minus = true;
+                hrow invalid_argument("Query contains the wrong format of minus-words"s);
             }
         }
-        return {text, is_minus, IsStopWord(text), is_wrong_minus};
+        return {text, is_minus, IsStopWord(text)};
     }
 
     struct Query {
         set<string> plus_words;
         set<string> minus_words;
-        bool is_right;
     };
 
     Query ParseQuery(const string& text) const {
         Query query;
         for (const string& word : SplitIntoWords(text)) {
             const QueryWord query_word = ParseQueryWord(word);
-            query.is_right = true;
-            if(query_word.is_wrong_minus || !IsValidWord(query_word.data)) {
-                query.is_right = false;
+            if(!IsValidWord(query_word.data)) {
+                throw invalid_argument("Query contains invalid characters"s);
             }
             else {
                 if (!query_word.is_stop) {
@@ -288,7 +279,6 @@ private:
         return query;
     }
 
-    // Existence required
     double ComputeWordInverseDocumentFreq(const string& word) const {
         return log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
     }
