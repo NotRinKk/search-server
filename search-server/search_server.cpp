@@ -64,6 +64,13 @@ bool SearchServer::IsStopWord(const string& word) const {
     return stop_words_.count(word) > 0;
 }
 
+bool SearchServer::IsValidWord(const std::string& word) {
+    // A valid word must not contain special characters
+    return std::none_of(word.begin(), word.end(), [](char c) {
+        return c >= '\0' && c < ' ';
+    });
+}
+
 vector<string> SearchServer::SplitIntoWordsNoStop(const string& text) const {
     vector<string> words;
     for (const string& word : SplitIntoWords(text)) {
@@ -75,6 +82,17 @@ vector<string> SearchServer::SplitIntoWordsNoStop(const string& text) const {
         }
     }
     return words;
+}
+
+int SearchServer::ComputeAverageRating(const std::vector<int>& ratings) {
+    if (ratings.empty()) {
+        return 0;
+    }
+    int rating_sum = 0;
+    for (const int rating : ratings) {
+        rating_sum += rating;
+    }
+    return rating_sum / static_cast<int>(ratings.size());
 }
 
  SearchServer::QueryWord SearchServer::ParseQueryWord(const string& text) const {
